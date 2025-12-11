@@ -89,7 +89,10 @@
 
             const name = document.createElement("div");
             name.className = "widget-name";
-            name.textContent = w.name || "";
+            // Clean up the name - remove "- Statistical value" suffix
+            let displayName = w.name || "";
+            displayName = displayName.replace(/ - Statistical value$/i, "");
+            name.textContent = displayName;
 
             const updated = document.createElement("div");
             updated.className = "widget-updated";
