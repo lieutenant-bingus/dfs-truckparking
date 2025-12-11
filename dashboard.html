@@ -188,6 +188,24 @@
         color: #999;
         padding: 40px;
       }
+
+      /* Camera Feed Section */
+      .camera-section {
+        margin-bottom: 40px;
+      }
+      .camera-container {
+        background: white;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        display: inline-block;
+      }
+      .camera-feed {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+        display: block;
+      }
     </style>
   </head>
   <body>
@@ -218,6 +236,14 @@
             <div class="capacity-percent" id="capacity-percent">Lot capacity at --%</div>
             <div class="counter-updated" id="capacity-updated"></div>
           </div>
+        </div>
+      </section>
+
+      <!-- Live Camera Feed -->
+      <section class="camera-section">
+        <h2 class="section-title">Live Camera Feed</h2>
+        <div class="camera-container">
+          <img src="http://10.1.10.62/axis-cgi/mjpg/video.cgi" alt="Live Camera Feed" class="camera-feed" />
         </div>
       </section>
 
