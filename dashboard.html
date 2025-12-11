@@ -237,6 +237,31 @@
       .spot-marker.unknown {
         background: #999;
       }
+      /* Coordinate helper (for adding new spots) */
+      .coord-display {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        background: rgba(0,0,0,0.7);
+        color: #0f0;
+        padding: 6px 10px;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 12px;
+        z-index: 20;
+        display: none;
+      }
+      .camera-wrapper:hover .coord-display {
+        display: block;
+      }
+      /* Occupancy time styling */
+      .widget-occupancy {
+        font-size: 10px;
+        color: #e74c3c;
+        text-align: center;
+        font-weight: 500;
+        margin-top: 2px;
+      }
     </style>
   </head>
   <body>
@@ -290,6 +315,9 @@
             <div class="spot-marker unknown" id="marker-8" style="left: 95%; top: 40%;">8</div>
             <div class="spot-marker unknown" id="marker-9" style="left: 88%; top: 40%;">9</div>
             <div class="spot-marker unknown" id="marker-10" style="left: 78.2%; top: 39.9%;">10</div>
+            
+            <!-- Coordinate helper - hover over video to see x,y % -->
+            <div class="coord-display" id="coord-display">X: --%, Y: --%</div>
           </div>
         </div>
       </section>
@@ -309,6 +337,29 @@
         const d = new Date(Number(ts));
         if (isNaN(d.getTime())) return ts;
         return d.toLocaleTimeString();
+      }
+
+      // Format duration from timestamp to now
+      function formatDuration(startTs) {
+        if (!startTs) return "";
+        const start = Number(startTs);
+        if (isNaN(start)) return "";
+        
+        const now = Date.now();
+        const diffMs = now - start;
+        if (diffMs < 0) return "";
+        
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMins / 60);
+        const mins = diffMins % 60;
+        
+        if (diffHours > 0) {
+          return `${diffHours}h ${mins}m`;
+        } else if (diffMins > 0) {
+          return `${diffMins}m`;
+        } else {
+          return "<1m";
+        }
       }
 
       async function load() {
@@ -410,6 +461,14 @@
             div.appendChild(name);
             div.appendChild(updated);
 
+            // Add occupancy time for FULL spots
+            if (occupied && w.data_start_timestamp) {
+              const occupancy = document.createElement("div");
+              occupancy.className = "widget-occupancy";
+              occupancy.textContent = `Occupied: ${formatDuration(w.data_start_timestamp)}`;
+              div.appendChild(occupancy);
+            }
+
             grid.appendChild(div);
           }
         } catch (err) {
@@ -443,6 +502,18 @@
             }
           }
         }
+      }
+
+      // Coordinate helper - shows x,y % when hovering over camera
+      const wrapper = document.getElementById('camera-wrapper');
+      const coordDisplay = document.getElementById('coord-display');
+      if (wrapper && coordDisplay) {
+        wrapper.addEventListener('mousemove', (e) => {
+          const rect = wrapper.getBoundingClientRect();
+          const x = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
+          const y = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
+          coordDisplay.textContent = `X: ${x}%, Y: ${y}%`;
+        });
       }
 
       load();
