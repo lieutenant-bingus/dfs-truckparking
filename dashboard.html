@@ -465,7 +465,7 @@
             if (occupied && w.data_start_timestamp) {
               const occupancy = document.createElement("div");
               occupancy.className = "widget-occupancy";
-              occupancy.textContent = `Occupied: ${formatDuration(w.data_start_timestamp)}`;
+              occupancy.textContent = `Occupied since ${formatTs(w.data_start_timestamp)}`;
               div.appendChild(occupancy);
             }
 
