@@ -2,58 +2,175 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>DFS – All Widgets</title>
+    <title>Truck Parking Monitor</title>
     <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
       body {
-        font-family: Arial, sans-serif;
-        margin: 40px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #1a1a2e;
+        color: #eee;
+        min-height: 100vh;
+        padding: 30px;
+      }
+      h1 {
+        text-align: center;
+        font-size: 28px;
+        margin-bottom: 30px;
+        color: #fff;
+        letter-spacing: 1px;
+      }
+      
+      /* Traffic Counters Section */
+      .traffic-section {
+        margin-bottom: 40px;
+      }
+      .traffic-section h2 {
+        font-size: 18px;
+        color: #888;
+        margin-bottom: 16px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+      .traffic-counters {
+        display: flex;
+        gap: 24px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .counter-box {
+        background: linear-gradient(145deg, #16213e, #1a1a2e);
+        border: 2px solid #333;
+        border-radius: 12px;
+        padding: 30px 50px;
+        text-align: center;
+        min-width: 250px;
+      }
+      .counter-box.ingress {
+        border-color: #2ecc71;
+      }
+      .counter-box.egress {
+        border-color: #e74c3c;
+      }
+      .counter-label {
+        font-size: 14px;
+        color: #aaa;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .counter-value {
+        font-size: 64px;
+        font-weight: bold;
+      }
+      .counter-box.ingress .counter-value {
+        color: #2ecc71;
+      }
+      .counter-box.egress .counter-value {
+        color: #e74c3c;
+      }
+      .counter-updated {
+        font-size: 11px;
+        color: #666;
+        margin-top: 10px;
+      }
+
+      /* Parking Spots Section */
+      .spots-section {
+        margin-top: 20px;
+      }
+      .spots-section h2 {
+        font-size: 18px;
+        color: #888;
+        margin-bottom: 16px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
       }
       .grid {
         display: flex;
         flex-wrap: wrap;
-        gap: 24px;
+        gap: 20px;
+        justify-content: center;
       }
       .widget {
         display: flex;
         flex-direction: column;
         align-items: center;
-        width: 180px;
+        width: 140px;
       }
       .circle {
-        width: 110px;
-        height: 110px;
+        width: 100px;
+        height: 100px;
         border-radius: 50%;
         border: 4px solid #333;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 24px;
+        font-size: 20px;
         color: white;
         font-weight: bold;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+      .circle:hover {
+        transform: scale(1.05);
       }
       .circle.open {
-        background-color: #2ecc71; /* green */
+        background: linear-gradient(145deg, #27ae60, #2ecc71);
+        box-shadow: 0 0 20px rgba(46, 204, 113, 0.3);
       }
       .circle.occupied {
-        background-color: #e74c3c; /* red */
+        background: linear-gradient(145deg, #c0392b, #e74c3c);
+        box-shadow: 0 0 20px rgba(231, 76, 60, 0.3);
       }
       .widget-name {
         text-align: center;
         font-size: 14px;
+        font-weight: 600;
+        color: #fff;
         margin-bottom: 4px;
       }
       .widget-updated {
-        font-size: 12px;
-        color: #555;
+        font-size: 11px;
+        color: #666;
         text-align: center;
+      }
+      
+      .no-data {
+        text-align: center;
+        color: #666;
+        padding: 40px;
       }
     </style>
   </head>
   <body>
-    <h1>DFS Widgets</h1>
+    <h1>🚛 Truck Parking Monitor</h1>
 
-    <div id="grid" class="grid"></div>
+    <!-- Traffic Counters -->
+    <section class="traffic-section">
+      <h2>Traffic Count</h2>
+      <div class="traffic-counters">
+        <div class="counter-box ingress">
+          <div class="counter-label">Vehicles Entered Lot</div>
+          <div class="counter-value" id="ingress-count">--</div>
+          <div class="counter-updated" id="ingress-updated"></div>
+        </div>
+        <div class="counter-box egress">
+          <div class="counter-label">Vehicles Exited Lot</div>
+          <div class="counter-value" id="egress-count">--</div>
+          <div class="counter-updated" id="egress-updated"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Parking Spots -->
+    <section class="spots-section">
+      <h2>Parking Spots</h2>
+      <div id="grid" class="grid"></div>
+    </section>
 
     <script>
       function formatTs(ts) {
@@ -68,15 +185,53 @@
           const res = await fetch("/api/widgets");
           const widgets = await res.json();
 
-          const grid = document.getElementById("grid");
-          grid.innerHTML = "";
-
           if (!Array.isArray(widgets) || widgets.length === 0) {
-            grid.textContent = "No widget data received yet.";
+            document.getElementById("grid").innerHTML = '<div class="no-data">No parking spot data yet.</div>';
             return;
           }
 
+          // Separate traffic counters from parking spots
+          let ingressWidget = null;
+          let egressWidget = null;
+          const parkingSpots = [];
+
           for (const w of widgets) {
+            const nameLower = (w.name || "").toLowerCase().trim();
+            if (nameLower === "ingress") {
+              ingressWidget = w;
+            } else if (nameLower.includes("egress")) {
+              egressWidget = w;
+            } else if (w.name && w.name.toLowerCase().includes("spot")) {
+              parkingSpots.push(w);
+            }
+          }
+
+          // Update ingress counter
+          if (ingressWidget) {
+            const count = ingressWidget.object_count ?? ingressWidget.value ?? 0;
+            document.getElementById("ingress-count").textContent = count;
+            document.getElementById("ingress-updated").textContent = 
+              ingressWidget.received_ts ? `Last update: ${formatTs(ingressWidget.received_ts)}` : "";
+          }
+
+          // Update egress counter
+          if (egressWidget) {
+            const count = egressWidget.object_count ?? egressWidget.value ?? 0;
+            document.getElementById("egress-count").textContent = count;
+            document.getElementById("egress-updated").textContent = 
+              egressWidget.received_ts ? `Last update: ${formatTs(egressWidget.received_ts)}` : "";
+          }
+
+          // Render parking spots
+          const grid = document.getElementById("grid");
+          grid.innerHTML = "";
+
+          if (parkingSpots.length === 0) {
+            grid.innerHTML = '<div class="no-data">No parking spot data yet.</div>';
+            return;
+          }
+
+          for (const w of parkingSpots) {
             const value = w.object_count ?? w.value ?? 0;
             const occupied = Number(value) >= 1;
 
@@ -97,7 +252,7 @@
             const updated = document.createElement("div");
             updated.className = "widget-updated";
             updated.textContent = w.received_ts
-              ? `Last: ${formatTs(w.received_ts)}`
+              ? `${formatTs(w.received_ts)}`
               : "";
 
             div.appendChild(circle);
