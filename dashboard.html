@@ -237,23 +237,6 @@
       .spot-marker.unknown {
         background: #999;
       }
-      /* Coordinate helper (for debugging) */
-      .coord-display {
-        position: absolute;
-        bottom: 10px;
-        left: 10px;
-        background: rgba(0,0,0,0.7);
-        color: #0f0;
-        padding: 6px 10px;
-        border-radius: 4px;
-        font-family: monospace;
-        font-size: 12px;
-        z-index: 20;
-        display: none;
-      }
-      .camera-wrapper:hover .coord-display {
-        display: block;
-      }
     </style>
   </head>
   <body>
@@ -295,21 +278,18 @@
             <img src="http://10.1.10.62/axis-cgi/mjpg/video.cgi" alt="Live Camera Feed" class="camera-feed" />
             
             <!-- Spot markers (positions in %) - Front row -->
-            <div class="spot-marker unknown" id="marker-1" style="left: 6%; top: 55%;">1</div>
-            <div class="spot-marker unknown" id="marker-2" style="left: 13%; top: 55%;">2</div>
-            <div class="spot-marker unknown" id="marker-3" style="left: 33%; top: 58%;">3</div>
-            <div class="spot-marker unknown" id="marker-4" style="left: 46%; top: 60%;">4</div>
-            <div class="spot-marker unknown" id="marker-5" style="left: 62%; top: 63%;">5</div>
-            <div class="spot-marker unknown" id="marker-6" style="left: 76%; top: 66%;">6</div>
-            <div class="spot-marker unknown" id="marker-7" style="left: 90%; top: 68%;">7</div>
+            <div class="spot-marker unknown" id="marker-1" style="left: 6.1%; top: 55%;">1</div>
+            <div class="spot-marker unknown" id="marker-2" style="left: 18.4%; top: 59%;">2</div>
+            <div class="spot-marker unknown" id="marker-3" style="left: 40.8%; top: 58.4%;">3</div>
+            <div class="spot-marker unknown" id="marker-4" style="left: 52.8%; top: 62.2%;">4</div>
+            <div class="spot-marker unknown" id="marker-5" style="left: 66.7%; top: 61.2%;">5</div>
+            <div class="spot-marker unknown" id="marker-6" style="left: 80%; top: 62.1%;">6</div>
+            <div class="spot-marker unknown" id="marker-7" style="left: 95.3%; top: 62.2%;">7</div>
             
             <!-- Spot markers - Back row -->
             <div class="spot-marker unknown" id="marker-8" style="left: 95%; top: 40%;">8</div>
             <div class="spot-marker unknown" id="marker-9" style="left: 88%; top: 40%;">9</div>
-            <div class="spot-marker unknown" id="marker-10" style="left: 80%; top: 40%;">10</div>
-            
-            <!-- Coordinate helper - hover over video to see x,y % -->
-            <div class="coord-display" id="coord-display">X: --%, Y: --%</div>
+            <div class="spot-marker unknown" id="marker-10" style="left: 78.2%; top: 39.9%;">10</div>
           </div>
         </div>
       </section>
@@ -463,18 +443,6 @@
             }
           }
         }
-      }
-
-      // Coordinate helper - shows x,y % when hovering over camera
-      const wrapper = document.getElementById('camera-wrapper');
-      const coordDisplay = document.getElementById('coord-display');
-      if (wrapper && coordDisplay) {
-        wrapper.addEventListener('mousemove', (e) => {
-          const rect = wrapper.getBoundingClientRect();
-          const x = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
-          const y = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
-          coordDisplay.textContent = `X: ${x}%, Y: ${y}%`;
-        });
       }
 
       load();
