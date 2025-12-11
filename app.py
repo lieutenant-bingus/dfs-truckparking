@@ -62,5 +62,10 @@ def dashboard():
     return send_from_directory(BASE_DIR, "dashboard.html")
 
 
+@app.route("/logo.png", methods=["GET"])
+def logo():
+    return send_from_directory(BASE_DIR, "logo.png")
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
