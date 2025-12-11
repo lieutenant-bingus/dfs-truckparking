@@ -11,6 +11,16 @@ BASE_DIR = os.path.dirname(__file__)
 # In-memory cache of latest event per widget ID
 latest_by_id = {}  # widget_id -> last event dict
 
+# Track when each spot became occupied (for "occupied since" feature)
+occupied_since = {}  # widget_id -> timestamp (ms) when spot became FULL
+
+
+def is_occupied(event):
+    """Check if a spot is occupied based on object_count"""
+    data = event.get("data", {})
+    count = data.get("object_count", 0)
+    return count is not None and int(count) >= 1
+
 
 @app.route("/dfs", methods=["POST"])
 def dfs_webhook():
@@ -25,6 +35,18 @@ def dfs_webhook():
 
     wid = event.get("id")
     if wid is not None:
+        # Check for OPEN -> FULL transition to track occupancy start time
+        prev_event = latest_by_id.get(wid)
+        was_occupied = is_occupied(prev_event) if prev_event else False
+        now_occupied = is_occupied(event)
+        
+        if now_occupied and not was_occupied:
+            # Just became occupied - record the time
+            occupied_since[wid] = event["_received_ts"]
+        elif not now_occupied and was_occupied:
+            # Just became open - clear the occupied time
+            occupied_since.pop(wid, None)
+        
         latest_by_id[wid] = event
 
     try:
@@ -53,6 +75,7 @@ def api_widgets():
             "data_start_timestamp": ev.get("data_start_timestamp"),
             "data_end_timestamp": ev.get("data_end_timestamp"),
             "received_ts": ev.get("_received_ts"),
+            "occupied_since": occupied_since.get(wid),  # When spot became FULL
         })
     return jsonify(result)
 
