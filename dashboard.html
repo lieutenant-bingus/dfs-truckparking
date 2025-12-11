@@ -52,7 +52,6 @@
   </head>
   <body>
     <h1>DFS Widgets</h1>
-    <p>Each circle is a widget. Red = FULL (count ≥ 1), green = OPEN.</p>
 
     <div id="grid" class="grid"></div>
 
@@ -90,7 +89,7 @@
 
             const name = document.createElement("div");
             name.className = "widget-name";
-            name.textContent = w.name || `Widget ${w.id}`;
+            name.textContent = w.name || "";
 
             const updated = document.createElement("div");
             updated.className = "widget-updated";
