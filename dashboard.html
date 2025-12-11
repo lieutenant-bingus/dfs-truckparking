@@ -80,6 +80,11 @@
       .counter-card.egress {
         border-left-color: #f44336;
       }
+      .counter-card.capacity {
+        border-left-color: #2196F3;
+        min-width: 280px;
+        max-width: 350px;
+      }
       .counter-label {
         font-size: 12px;
         color: #666;
@@ -97,6 +102,16 @@
       }
       .counter-card.egress .counter-value {
         color: #f44336;
+      }
+      .counter-card.capacity .counter-value {
+        color: #2196F3;
+        font-size: 36px;
+      }
+      .capacity-percent {
+        font-size: 16px;
+        color: #666;
+        margin-top: 4px;
+        font-weight: 500;
       }
       .counter-updated {
         font-size: 11px;
@@ -197,6 +212,12 @@
             <div class="counter-value" id="egress-count">--</div>
             <div class="counter-updated" id="egress-updated"></div>
           </div>
+          <div class="counter-card capacity">
+            <div class="counter-label">Lot Availability</div>
+            <div class="counter-value" id="capacity-count">--/20</div>
+            <div class="capacity-percent" id="capacity-percent">Lot capacity at --%</div>
+            <div class="counter-updated" id="capacity-updated"></div>
+          </div>
         </div>
       </section>
 
@@ -230,6 +251,7 @@
           // Separate traffic counters from parking spots
           let ingressWidget = null;
           let egressWidget = null;
+          let capacityWidget = null;
           const parkingSpots = [];
 
           for (const w of widgets) {
@@ -238,6 +260,8 @@
               ingressWidget = w;
             } else if (nameLower.includes("egress")) {
               egressWidget = w;
+            } else if (nameLower.includes("mega-zone")) {
+              capacityWidget = w;
             } else if (w.name && w.name.toLowerCase().includes("spot")) {
               parkingSpots.push(w);
             }
@@ -257,6 +281,19 @@
             document.getElementById("egress-count").textContent = count;
             document.getElementById("egress-updated").textContent = 
               egressWidget.received_ts ? `Last update: ${formatTs(egressWidget.received_ts)}` : "";
+          }
+
+          // Update capacity counter (MEGA-ZONE)
+          if (capacityWidget) {
+            const totalSpots = 20;
+            const occupied = capacityWidget.object_count ?? capacityWidget.value ?? 0;
+            const available = totalSpots - occupied;
+            const percentUsed = Math.round((occupied / totalSpots) * 100);
+            
+            document.getElementById("capacity-count").textContent = `${available}/${totalSpots} spots available`;
+            document.getElementById("capacity-percent").textContent = `Lot capacity at ${percentUsed}%`;
+            document.getElementById("capacity-updated").textContent = 
+              capacityWidget.received_ts ? `Last update: ${formatTs(capacityWidget.received_ts)}` : "";
           }
 
           // Render parking spots
