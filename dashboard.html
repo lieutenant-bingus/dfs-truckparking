@@ -11,166 +11,209 @@
       }
       body {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background: #1a1a2e;
-        color: #eee;
+        background: #f5f6fa;
+        color: #333;
         min-height: 100vh;
+      }
+
+      /* Header */
+      .header {
+        background: #2196F3;
+        color: white;
+        padding: 16px 30px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .header-logo {
+        height: 40px;
+        width: auto;
+      }
+      .header h1 {
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+
+      .main-content {
         padding: 30px;
+        max-width: 1400px;
+        margin: 0 auto;
       }
-      h1 {
-        text-align: center;
-        font-size: 28px;
-        margin-bottom: 30px;
-        color: #fff;
+
+      /* Section titles */
+      .section-title {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 16px;
+        text-transform: uppercase;
         letter-spacing: 1px;
+        font-weight: 600;
       }
-      
+
       /* Traffic Counters Section */
       .traffic-section {
         margin-bottom: 40px;
       }
-      .traffic-section h2 {
-        font-size: 18px;
-        color: #888;
-        margin-bottom: 16px;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-      }
       .traffic-counters {
         display: flex;
-        gap: 24px;
-        justify-content: center;
+        gap: 20px;
         flex-wrap: wrap;
       }
-      .counter-box {
-        background: linear-gradient(145deg, #16213e, #1a1a2e);
-        border: 2px solid #333;
-        border-radius: 12px;
-        padding: 30px 50px;
-        text-align: center;
-        min-width: 250px;
+      .counter-card {
+        background: white;
+        border-radius: 8px;
+        padding: 24px 32px;
+        min-width: 220px;
+        flex: 1;
+        max-width: 300px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border-left: 4px solid #ccc;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
       }
-      .counter-box.ingress {
-        border-color: #2ecc71;
+      .counter-card.ingress {
+        border-left-color: #4CAF50;
       }
-      .counter-box.egress {
-        border-color: #e74c3c;
+      .counter-card.egress {
+        border-left-color: #f44336;
       }
       .counter-label {
-        font-size: 14px;
-        color: #aaa;
-        margin-bottom: 10px;
+        font-size: 12px;
+        color: #666;
+        margin-bottom: 8px;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 0.5px;
+        text-align: center;
       }
       .counter-value {
-        font-size: 64px;
-        font-weight: bold;
+        font-size: 48px;
+        font-weight: 700;
       }
-      .counter-box.ingress .counter-value {
-        color: #2ecc71;
+      .counter-card.ingress .counter-value {
+        color: #4CAF50;
       }
-      .counter-box.egress .counter-value {
-        color: #e74c3c;
+      .counter-card.egress .counter-value {
+        color: #f44336;
       }
       .counter-updated {
         font-size: 11px;
-        color: #666;
-        margin-top: 10px;
+        color: #999;
+        margin-top: 8px;
       }
 
       /* Parking Spots Section */
       .spots-section {
         margin-top: 20px;
       }
-      .spots-section h2 {
-        font-size: 18px;
-        color: #888;
-        margin-bottom: 16px;
-        text-transform: uppercase;
-        letter-spacing: 2px;
+      .spots-container {
+        background: white;
+        border-radius: 8px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
       }
       .grid {
         display: flex;
         flex-wrap: wrap;
         gap: 20px;
-        justify-content: center;
+        justify-content: flex-start;
       }
       .widget {
         display: flex;
         flex-direction: column;
         align-items: center;
-        width: 140px;
+        width: 120px;
+        padding: 12px;
+        background: #f9f9f9;
+        border-radius: 8px;
+        transition: background 0.2s;
+      }
+      .widget:hover {
+        background: #f0f0f0;
       }
       .circle {
-        width: 100px;
-        height: 100px;
+        width: 80px;
+        height: 80px;
         border-radius: 50%;
-        border: 4px solid #333;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 20px;
+        font-size: 16px;
         color: white;
         font-weight: bold;
         margin-bottom: 10px;
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition: transform 0.2s;
       }
       .circle:hover {
         transform: scale(1.05);
       }
       .circle.open {
-        background: linear-gradient(145deg, #27ae60, #2ecc71);
-        box-shadow: 0 0 20px rgba(46, 204, 113, 0.3);
+        background: #4CAF50;
       }
       .circle.occupied {
-        background: linear-gradient(145deg, #c0392b, #e74c3c);
-        box-shadow: 0 0 20px rgba(231, 76, 60, 0.3);
+        background: #f44336;
       }
       .widget-name {
         text-align: center;
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 600;
-        color: #fff;
+        color: #333;
         margin-bottom: 4px;
       }
       .widget-updated {
-        font-size: 11px;
-        color: #666;
+        font-size: 10px;
+        color: #999;
         text-align: center;
       }
       
       .no-data {
         text-align: center;
-        color: #666;
+        color: #999;
         padding: 40px;
       }
     </style>
   </head>
   <body>
-    <h1>🚛 Truck Parking Monitor</h1>
+    <!-- Header with logo -->
+    <header class="header">
+      <!-- 
+        TO ADD YOUR OWN LOGO:
+        1. Add your image file to this folder (e.g., "logo.png")
+        2. Uncomment the <img> tag below and update the src
+        3. Or use a URL to an image hosted online
+      -->
+      <!-- <img src="logo.png" alt="Logo" class="header-logo" /> -->
+      <h1>Truck Parking Monitor</h1>
+    </header>
 
-    <!-- Traffic Counters -->
-    <section class="traffic-section">
-      <h2>Traffic Count</h2>
-      <div class="traffic-counters">
-        <div class="counter-box ingress">
-          <div class="counter-label">Vehicles Entered Lot</div>
-          <div class="counter-value" id="ingress-count">--</div>
-          <div class="counter-updated" id="ingress-updated"></div>
+    <div class="main-content">
+      <!-- Traffic Counters -->
+      <section class="traffic-section">
+        <h2 class="section-title">Traffic Count</h2>
+        <div class="traffic-counters">
+          <div class="counter-card ingress">
+            <div class="counter-label">Vehicles Entered Lot</div>
+            <div class="counter-value" id="ingress-count">--</div>
+            <div class="counter-updated" id="ingress-updated"></div>
+          </div>
+          <div class="counter-card egress">
+            <div class="counter-label">Vehicles Exited Lot</div>
+            <div class="counter-value" id="egress-count">--</div>
+            <div class="counter-updated" id="egress-updated"></div>
+          </div>
         </div>
-        <div class="counter-box egress">
-          <div class="counter-label">Vehicles Exited Lot</div>
-          <div class="counter-value" id="egress-count">--</div>
-          <div class="counter-updated" id="egress-updated"></div>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- Parking Spots -->
-    <section class="spots-section">
-      <h2>Parking Spots</h2>
-      <div id="grid" class="grid"></div>
-    </section>
+      <!-- Parking Spots -->
+      <section class="spots-section">
+        <h2 class="section-title">Parking Spots</h2>
+        <div class="spots-container">
+          <div id="grid" class="grid"></div>
+        </div>
+      </section>
+    </div>
 
     <script>
       function formatTs(ts) {
@@ -244,9 +287,10 @@
 
             const name = document.createElement("div");
             name.className = "widget-name";
-            // Clean up the name - remove "- Statistical value" suffix
+            // Clean up the name - remove "- Statistical value" and "- Value" suffixes
             let displayName = w.name || "";
             displayName = displayName.replace(/ - Statistical value$/i, "");
+            displayName = displayName.replace(/ - Value$/i, "");
             name.textContent = displayName;
 
             const updated = document.createElement("div");
