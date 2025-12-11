@@ -200,10 +200,58 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         display: inline-block;
       }
+      .camera-wrapper {
+        position: relative;
+        display: inline-block;
+      }
       .camera-feed {
         max-width: 100%;
         height: auto;
         border-radius: 4px;
+        display: block;
+      }
+      /* Overlay markers */
+      .spot-marker {
+        position: absolute;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: bold;
+        color: white;
+        border: 3px solid white;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        transform: translate(-50%, -50%);
+        cursor: default;
+        z-index: 10;
+      }
+      .spot-marker.open {
+        background: #4CAF50;
+      }
+      .spot-marker.occupied {
+        background: #f44336;
+      }
+      .spot-marker.unknown {
+        background: #999;
+      }
+      /* Coordinate helper (for debugging) */
+      .coord-display {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        background: rgba(0,0,0,0.7);
+        color: #0f0;
+        padding: 6px 10px;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 12px;
+        z-index: 20;
+        display: none;
+      }
+      .camera-wrapper:hover .coord-display {
         display: block;
       }
     </style>
@@ -239,11 +287,30 @@
         </div>
       </section>
 
-      <!-- Live Camera Feed -->
+      <!-- Live Camera Feed with Overlay -->
       <section class="camera-section">
         <h2 class="section-title">Live Camera Feed</h2>
         <div class="camera-container">
-          <img src="http://10.1.10.62/axis-cgi/mjpg/video.cgi" alt="Live Camera Feed" class="camera-feed" />
+          <div class="camera-wrapper" id="camera-wrapper">
+            <img src="http://10.1.10.62/axis-cgi/mjpg/video.cgi" alt="Live Camera Feed" class="camera-feed" />
+            
+            <!-- Spot markers (positions in %) - Front row -->
+            <div class="spot-marker unknown" id="marker-1" style="left: 6%; top: 55%;">1</div>
+            <div class="spot-marker unknown" id="marker-2" style="left: 13%; top: 55%;">2</div>
+            <div class="spot-marker unknown" id="marker-3" style="left: 33%; top: 58%;">3</div>
+            <div class="spot-marker unknown" id="marker-4" style="left: 46%; top: 60%;">4</div>
+            <div class="spot-marker unknown" id="marker-5" style="left: 62%; top: 63%;">5</div>
+            <div class="spot-marker unknown" id="marker-6" style="left: 76%; top: 66%;">6</div>
+            <div class="spot-marker unknown" id="marker-7" style="left: 90%; top: 68%;">7</div>
+            
+            <!-- Spot markers - Back row -->
+            <div class="spot-marker unknown" id="marker-8" style="left: 95%; top: 40%;">8</div>
+            <div class="spot-marker unknown" id="marker-9" style="left: 88%; top: 40%;">9</div>
+            <div class="spot-marker unknown" id="marker-10" style="left: 80%; top: 40%;">10</div>
+            
+            <!-- Coordinate helper - hover over video to see x,y % -->
+            <div class="coord-display" id="coord-display">X: --%, Y: --%</div>
+          </div>
         </div>
       </section>
 
@@ -322,6 +389,9 @@
               capacityWidget.received_ts ? `Last update: ${formatTs(capacityWidget.received_ts)}` : "";
           }
 
+          // Update overlay markers on camera feed
+          updateMarkers(parkingSpots);
+
           // Render parking spots
           const grid = document.getElementById("grid");
           grid.innerHTML = "";
@@ -365,6 +435,46 @@
         } catch (err) {
           console.error("Error loading widgets", err);
         }
+      }
+
+      // Update overlay markers based on spot data
+      function updateMarkers(parkingSpots) {
+        // Create a map of spot number -> occupied status
+        const spotStatus = {};
+        for (const w of parkingSpots) {
+          // Extract spot number from name like "SPOT 1", "SPOT 2", etc.
+          const match = (w.name || "").match(/SPOT\s*(\d+)/i);
+          if (match) {
+            const spotNum = parseInt(match[1]);
+            const value = w.object_count ?? w.value ?? 0;
+            spotStatus[spotNum] = Number(value) >= 1;
+          }
+        }
+        
+        // Update markers 1-10
+        for (let i = 1; i <= 10; i++) {
+          const marker = document.getElementById(`marker-${i}`);
+          if (marker) {
+            marker.classList.remove('open', 'occupied', 'unknown');
+            if (spotStatus.hasOwnProperty(i)) {
+              marker.classList.add(spotStatus[i] ? 'occupied' : 'open');
+            } else {
+              marker.classList.add('unknown');
+            }
+          }
+        }
+      }
+
+      // Coordinate helper - shows x,y % when hovering over camera
+      const wrapper = document.getElementById('camera-wrapper');
+      const coordDisplay = document.getElementById('coord-display');
+      if (wrapper && coordDisplay) {
+        wrapper.addEventListener('mousemove', (e) => {
+          const rect = wrapper.getBoundingClientRect();
+          const x = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
+          const y = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
+          coordDisplay.textContent = `X: ${x}%, Y: ${y}%`;
+        });
       }
 
       load();
