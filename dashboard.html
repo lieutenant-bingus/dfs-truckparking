@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>DFS – All Widgets</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 40px;
+      }
+      .grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 24px;
+      }
+      .widget {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 180px;
+      }
+      .circle {
+        width: 110px;
+        height: 110px;
+        border-radius: 50%;
+        border: 4px solid #333;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: white;
+        font-weight: bold;
+        margin-bottom: 8px;
+      }
+      .circle.open {
+        background-color: #2ecc71; /* green */
+      }
+      .circle.occupied {
+        background-color: #e74c3c; /* red */
+      }
+      .widget-name {
+        text-align: center;
+        font-size: 14px;
+        margin-bottom: 4px;
+      }
+      .widget-updated {
+        font-size: 12px;
+        color: #555;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>DFS Widgets</h1>
+    <p>Each circle is a widget. Red = FULL (count ≥ 1), green = OPEN.</p>
+
+    <div id="grid" class="grid"></div>
+
+    <script>
+      function formatTs(ts) {
+        if (!ts) return "";
+        const d = new Date(Number(ts));
+        if (isNaN(d.getTime())) return ts;
+        return d.toLocaleTimeString();
+      }
+
+      async function load() {
+        try {
+          const res = await fetch("/api/widgets");
+          const widgets = await res.json();
+
+          const grid = document.getElementById("grid");
+          grid.innerHTML = "";
+
+          if (!Array.isArray(widgets) || widgets.length === 0) {
+            grid.textContent = "No widget data received yet.";
+            return;
+          }
+
+          for (const w of widgets) {
+            const value = w.object_count ?? w.value ?? 0;
+            const occupied = Number(value) >= 1;
+
+            const div = document.createElement("div");
+            div.className = "widget";
+
+            const circle = document.createElement("div");
+            circle.className = "circle " + (occupied ? "occupied" : "open");
+            circle.textContent = occupied ? "FULL" : "OPEN";
+
+            const name = document.createElement("div");
+            name.className = "widget-name";
+            name.textContent = w.name || `Widget ${w.id}`;
+
+            const updated = document.createElement("div");
+            updated.className = "widget-updated";
+            updated.textContent = w.received_ts
+              ? `Last: ${formatTs(w.received_ts)}`
+              : "";
+
+            div.appendChild(circle);
+            div.appendChild(name);
+            div.appendChild(updated);
+
+            grid.appendChild(div);
+          }
+        } catch (err) {
+          console.error("Error loading widgets", err);
+        }
+      }
+
+      load();
+      setInterval(load, 3000);
+    </script>
+  </body>
+</html>
