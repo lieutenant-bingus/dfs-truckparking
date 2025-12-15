@@ -80,6 +80,34 @@ def api_widgets():
     return jsonify(result)
 
 
+@app.route("/api/history", methods=["GET"])
+def api_history():
+    """Return historical occupancy data from the event log"""
+    history = []
+    try:
+        if os.path.exists(EVENT_LOG_FILE):
+            with open(EVENT_LOG_FILE, "r", encoding="utf-8") as f:
+                for line in f:
+                    try:
+                        event = json.loads(line.strip())
+                        name = event.get("name", "")
+                        # Only include MEGA-ZONE events for overall occupancy tracking
+                        if "mega-zone" in name.lower():
+                            data = event.get("data", {})
+                            history.append({
+                                "timestamp": event.get("_received_ts"),
+                                "occupied": data.get("object_count", 0),
+                                "name": name
+                            })
+                    except json.JSONDecodeError:
+                        continue
+    except OSError:
+        pass
+    
+    # Return last 100 data points to keep response size reasonable
+    return jsonify(history[-100:])
+
+
 @app.route("/", methods=["GET"])
 def dashboard():
     return send_from_directory(BASE_DIR, "dashboard.html")

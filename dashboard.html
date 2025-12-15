@@ -3,7 +3,34 @@
   <head>
     <meta charset="utf-8" />
     <title>Truck Parking Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+      :root {
+        --bg-primary: #f5f6fa;
+        --bg-secondary: #ffffff;
+        --bg-tertiary: #f9f9f9;
+        --bg-hover: #f0f0f0;
+        --text-primary: #333;
+        --text-secondary: #666;
+        --text-muted: #999;
+        --border-color: #e0e0e0;
+        --shadow: rgba(0,0,0,0.08);
+        --header-bg: #2196F3;
+      }
+      
+      [data-theme="dark"] {
+        --bg-primary: #1a1a2e;
+        --bg-secondary: #16213e;
+        --bg-tertiary: #1f2940;
+        --bg-hover: #243352;
+        --text-primary: #e8e8e8;
+        --text-secondary: #a0a0a0;
+        --text-muted: #707070;
+        --border-color: #2a3a5a;
+        --shadow: rgba(0,0,0,0.3);
+        --header-bg: #0f3460;
+      }
+      
       * {
         box-sizing: border-box;
         margin: 0;
@@ -11,20 +38,22 @@
       }
       body {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background: #f5f6fa;
-        color: #333;
+        background: var(--bg-primary);
+        color: var(--text-primary);
         min-height: 100vh;
+        transition: background 0.3s, color 0.3s;
       }
 
       /* Header */
       .header {
-        background: #2196F3;
+        background: var(--header-bg);
         color: white;
         padding: 16px 30px;
         display: flex;
         align-items: center;
         gap: 16px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: background 0.3s;
       }
       .header-logo {
         height: 40px;
@@ -34,6 +63,64 @@
         font-size: 22px;
         font-weight: 600;
         letter-spacing: 0.5px;
+        flex: 1;
+      }
+      
+      /* Dark mode toggle */
+      .theme-toggle {
+        background: rgba(255,255,255,0.2);
+        border: none;
+        border-radius: 20px;
+        padding: 8px 16px;
+        color: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        transition: background 0.2s;
+      }
+      .theme-toggle:hover {
+        background: rgba(255,255,255,0.3);
+      }
+      .theme-toggle-icon {
+        font-size: 18px;
+      }
+      
+      /* Alert Banner */
+      .alert-banner {
+        background: linear-gradient(135deg, #ff4757, #ff6b81);
+        color: white;
+        padding: 16px 30px;
+        display: none;
+        align-items: center;
+        gap: 12px;
+        font-weight: 600;
+        animation: pulse-alert 2s infinite;
+      }
+      .alert-banner.visible {
+        display: flex;
+      }
+      .alert-icon {
+        font-size: 24px;
+        animation: shake 0.5s infinite;
+      }
+      .alert-text {
+        flex: 1;
+      }
+      .alert-time {
+        font-size: 12px;
+        opacity: 0.9;
+        font-weight: 400;
+      }
+      @keyframes pulse-alert {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.85; }
+      }
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-2px); }
+        75% { transform: translateX(2px); }
       }
 
       .main-content {
@@ -45,7 +132,7 @@
       /* Section titles */
       .section-title {
         font-size: 14px;
-        color: #666;
+        color: var(--text-secondary);
         margin-bottom: 16px;
         text-transform: uppercase;
         letter-spacing: 1px;
@@ -62,17 +149,18 @@
         flex-wrap: wrap;
       }
       .counter-card {
-        background: white;
+        background: var(--bg-secondary);
         border-radius: 8px;
         padding: 24px 32px;
         min-width: 220px;
         flex: 1;
         max-width: 300px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        box-shadow: 0 2px 8px var(--shadow);
         border-left: 4px solid #ccc;
         display: flex;
         flex-direction: column;
         align-items: center;
+        transition: background 0.3s, box-shadow 0.3s;
       }
       .counter-card.ingress {
         border-left-color: #4CAF50;
@@ -87,7 +175,7 @@
       }
       .counter-label {
         font-size: 12px;
-        color: #666;
+        color: var(--text-secondary);
         margin-bottom: 8px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -109,13 +197,13 @@
       }
       .capacity-percent {
         font-size: 16px;
-        color: #666;
+        color: var(--text-secondary);
         margin-top: 4px;
         font-weight: 500;
       }
       .counter-updated {
         font-size: 11px;
-        color: #999;
+        color: var(--text-muted);
         margin-top: 8px;
       }
 
@@ -124,10 +212,11 @@
         margin-top: 20px;
       }
       .spots-container {
-        background: white;
+        background: var(--bg-secondary);
         border-radius: 8px;
         padding: 24px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        box-shadow: 0 2px 8px var(--shadow);
+        transition: background 0.3s, box-shadow 0.3s;
       }
       .grid {
         display: flex;
@@ -141,12 +230,12 @@
         align-items: center;
         width: 120px;
         padding: 12px;
-        background: #f9f9f9;
+        background: var(--bg-tertiary);
         border-radius: 8px;
         transition: background 0.2s;
       }
       .widget:hover {
-        background: #f0f0f0;
+        background: var(--bg-hover);
       }
       .circle {
         width: 80px;
@@ -174,18 +263,18 @@
         text-align: center;
         font-size: 13px;
         font-weight: 600;
-        color: #333;
+        color: var(--text-primary);
         margin-bottom: 4px;
       }
       .widget-updated {
         font-size: 10px;
-        color: #999;
+        color: var(--text-muted);
         text-align: center;
       }
       
       .no-data {
         text-align: center;
-        color: #999;
+        color: var(--text-muted);
         padding: 40px;
       }
 
@@ -194,11 +283,35 @@
         margin-bottom: 40px;
       }
       .camera-container {
-        background: white;
+        background: var(--bg-secondary);
         border-radius: 8px;
         padding: 16px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        box-shadow: 0 2px 8px var(--shadow);
         display: inline-block;
+        transition: background 0.3s, box-shadow 0.3s;
+      }
+      
+      /* Chart Section */
+      .chart-section {
+        margin-bottom: 40px;
+      }
+      .chart-container {
+        background: var(--bg-secondary);
+        border-radius: 8px;
+        padding: 24px;
+        box-shadow: 0 2px 8px var(--shadow);
+        transition: background 0.3s, box-shadow 0.3s;
+      }
+      .chart-wrapper {
+        position: relative;
+        height: 250px;
+      }
+      .chart-note {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 12px;
+        text-align: center;
+        font-style: italic;
       }
       .camera-wrapper {
         position: relative;
@@ -237,6 +350,18 @@
       .spot-marker.unknown {
         background: #999;
       }
+      .spot-marker.npz {
+        background: #ff9800;
+        font-size: 10px;
+      }
+      .spot-marker.npz.violation {
+        background: #ff4757;
+        animation: pulse-marker 1s infinite;
+      }
+      @keyframes pulse-marker {
+        0%, 100% { transform: translate(-50%, -50%) scale(1); }
+        50% { transform: translate(-50%, -50%) scale(1.15); }
+      }
       /* Coordinate helper (for adding new spots) */
       .coord-display {
         position: absolute;
@@ -265,10 +390,23 @@
     </style>
   </head>
   <body>
+    <!-- Alert Banner -->
+    <div class="alert-banner" id="alert-banner">
+      <span class="alert-icon">⚠️</span>
+      <span class="alert-text">
+        <strong>NO PARKING ZONE VIOLATION!</strong> A vehicle is parked in a restricted area.
+        <span class="alert-time" id="alert-time"></span>
+      </span>
+    </div>
+
     <!-- Header with logo -->
     <header class="header">
-<img src="logo.png" alt="Logo" class="header-logo" />
+      <img src="logo.png" alt="Logo" class="header-logo" />
       <h1>Truck Parking Monitor</h1>
+      <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">
+        <span class="theme-toggle-icon" id="theme-icon">🌙</span>
+        <span id="theme-label">Dark Mode</span>
+      </button>
     </header>
 
     <div class="main-content">
@@ -316,9 +454,23 @@
             <div class="spot-marker unknown" id="marker-9" style="left: 88%; top: 40%;">9</div>
             <div class="spot-marker unknown" id="marker-10" style="left: 78.2%; top: 39.9%;">10</div>
             
+            <!-- No Parking Zone marker -->
+            <div class="spot-marker npz" id="marker-npz" style="left: 29%; top: 55%;">NPZ</div>
+            
             <!-- Coordinate helper - hover over video to see x,y % -->
             <div class="coord-display" id="coord-display">X: --%, Y: --%</div>
           </div>
+        </div>
+      </section>
+
+      <!-- Historical Chart -->
+      <section class="chart-section">
+        <h2 class="section-title">Occupancy History</h2>
+        <div class="chart-container">
+          <div class="chart-wrapper">
+            <canvas id="occupancy-chart"></canvas>
+          </div>
+          <div class="chart-note">* Data may be incomplete due to server spin-down on free tier</div>
         </div>
       </section>
 
@@ -332,6 +484,148 @@
     </div>
 
     <script>
+      // ========== DARK MODE ==========
+      function initTheme() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        updateThemeButton(savedTheme);
+      }
+      
+      function toggleTheme() {
+        const current = document.documentElement.getAttribute('data-theme');
+        const newTheme = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateThemeButton(newTheme);
+        updateChartTheme();
+      }
+      
+      function updateThemeButton(theme) {
+        const icon = document.getElementById('theme-icon');
+        const label = document.getElementById('theme-label');
+        if (theme === 'dark') {
+          icon.textContent = '☀️';
+          label.textContent = 'Light Mode';
+        } else {
+          icon.textContent = '🌙';
+          label.textContent = 'Dark Mode';
+        }
+      }
+      
+      // Initialize theme on page load
+      initTheme();
+
+      // ========== CHART ==========
+      let occupancyChart = null;
+      
+      function getChartColors() {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        return {
+          line: '#2196F3',
+          fill: isDark ? 'rgba(33, 150, 243, 0.2)' : 'rgba(33, 150, 243, 0.1)',
+          grid: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+          text: isDark ? '#a0a0a0' : '#666'
+        };
+      }
+      
+      async function loadHistory() {
+        try {
+          const res = await fetch('/api/history');
+          const history = await res.json();
+          
+          if (!history || history.length === 0) {
+            return;
+          }
+          
+          const labels = history.map(h => {
+            const d = new Date(h.timestamp);
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          });
+          const data = history.map(h => h.occupied);
+          
+          const ctx = document.getElementById('occupancy-chart').getContext('2d');
+          const colors = getChartColors();
+          
+          if (occupancyChart) {
+            occupancyChart.data.labels = labels;
+            occupancyChart.data.datasets[0].data = data;
+            occupancyChart.update('none');
+          } else {
+            occupancyChart = new Chart(ctx, {
+              type: 'line',
+              data: {
+                labels: labels,
+                datasets: [{
+                  label: 'Vehicles in Lot',
+                  data: data,
+                  borderColor: colors.line,
+                  backgroundColor: colors.fill,
+                  fill: true,
+                  tension: 0.3,
+                  pointRadius: 2,
+                  pointHoverRadius: 5
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    display: false
+                  }
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    max: 20,
+                    grid: {
+                      color: colors.grid
+                    },
+                    ticks: {
+                      color: colors.text,
+                      stepSize: 5
+                    },
+                    title: {
+                      display: true,
+                      text: 'Occupied Spots',
+                      color: colors.text
+                    }
+                  },
+                  x: {
+                    grid: {
+                      color: colors.grid
+                    },
+                    ticks: {
+                      color: colors.text,
+                      maxTicksLimit: 10
+                    }
+                  }
+                }
+              }
+            });
+          }
+        } catch (err) {
+          console.error('Error loading history', err);
+        }
+      }
+      
+      function updateChartTheme() {
+        if (!occupancyChart) return;
+        const colors = getChartColors();
+        occupancyChart.data.datasets[0].borderColor = colors.line;
+        occupancyChart.data.datasets[0].backgroundColor = colors.fill;
+        occupancyChart.options.scales.y.grid.color = colors.grid;
+        occupancyChart.options.scales.y.ticks.color = colors.text;
+        occupancyChart.options.scales.y.title.color = colors.text;
+        occupancyChart.options.scales.x.grid.color = colors.grid;
+        occupancyChart.options.scales.x.ticks.color = colors.text;
+        occupancyChart.update('none');
+      }
+      
+      // Load chart on startup
+      loadHistory();
+
+      // ========== UTILITIES ==========
       function formatTs(ts) {
         if (!ts) return "";
         const d = new Date(Number(ts));
@@ -362,6 +656,7 @@
         }
       }
 
+      // ========== MAIN DATA LOAD ==========
       async function load() {
         try {
           const res = await fetch("/api/widgets");
@@ -376,6 +671,7 @@
           let ingressWidget = null;
           let egressWidget = null;
           let capacityWidget = null;
+          let noParkZoneWidget = null;
           const parkingSpots = [];
 
           for (const w of widgets) {
@@ -386,10 +682,15 @@
               egressWidget = w;
             } else if (nameLower.includes("mega-zone")) {
               capacityWidget = w;
+            } else if (nameLower.includes("noparkzone")) {
+              noParkZoneWidget = w;
             } else if (w.name && w.name.toLowerCase().includes("spot")) {
               parkingSpots.push(w);
             }
           }
+
+          // Update No Parking Zone alert
+          updateNoParkZoneAlert(noParkZoneWidget);
 
           // Update ingress counter
           if (ingressWidget) {
@@ -476,6 +777,32 @@
         }
       }
 
+      // Update No Parking Zone alert banner and marker
+      function updateNoParkZoneAlert(noParkZoneWidget) {
+        const alertBanner = document.getElementById('alert-banner');
+        const alertTime = document.getElementById('alert-time');
+        const npzMarker = document.getElementById('marker-npz');
+        
+        if (noParkZoneWidget) {
+          const count = noParkZoneWidget.object_count ?? noParkZoneWidget.value ?? 0;
+          const isViolation = Number(count) >= 1;
+          
+          if (isViolation) {
+            alertBanner.classList.add('visible');
+            if (noParkZoneWidget.received_ts) {
+              alertTime.textContent = ` — Detected at ${formatTs(noParkZoneWidget.received_ts)}`;
+            }
+            npzMarker.classList.add('violation');
+          } else {
+            alertBanner.classList.remove('visible');
+            npzMarker.classList.remove('violation');
+          }
+        } else {
+          alertBanner.classList.remove('visible');
+          if (npzMarker) npzMarker.classList.remove('violation');
+        }
+      }
+
       // Update overlay markers based on spot data
       function updateMarkers(parkingSpots) {
         // Create a map of spot number -> occupied status
@@ -518,6 +845,9 @@
 
       load();
       setInterval(load, 3000);
+      
+      // Refresh chart less frequently (every 30 seconds)
+      setInterval(loadHistory, 30000);
     </script>
   </body>
 </html>
