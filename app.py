@@ -80,36 +80,38 @@ def init_db(conn=None):
         return False
 
 
-def save_state(retry=True):
-    """Save current state to database for persistence across restarts"""
+def save_widget(wid, retry=True):
+    """Save a single widget's state to database"""
     conn = get_db_connection()
     if not conn:
         return
     
+    event = latest_by_id.get(wid)
+    if not event:
+        return
+    
     try:
         cur = conn.cursor()
-        
-        for wid, event in latest_by_id.items():
-            occ_since = occupied_since.get(wid)
-            cur.execute("""
-                INSERT INTO widget_state (widget_id, event_data, occupied_since)
-                VALUES (%s, %s, %s)
-                ON CONFLICT (widget_id) 
-                DO UPDATE SET event_data = %s, occupied_since = %s, updated_at = CURRENT_TIMESTAMP
-            """, (wid, json.dumps(event), occ_since, json.dumps(event), occ_since))
+        occ_since = occupied_since.get(wid)
+        cur.execute("""
+            INSERT INTO widget_state (widget_id, event_data, occupied_since)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (widget_id) 
+            DO UPDATE SET event_data = %s, occupied_since = %s, updated_at = CURRENT_TIMESTAMP
+        """, (str(wid), json.dumps(event), occ_since, json.dumps(event), occ_since))
         
         conn.commit()
         cur.close()
         conn.close()
     except Exception as e:
-        print(f"Error saving state: {e}")
+        print(f"Error saving widget {wid}: {e}")
         if conn:
             conn.close()
         # If table doesn't exist, try to create it and retry once
         if retry and "does not exist" in str(e):
             print("Tables missing, attempting to create...")
             if init_db():
-                save_state(retry=False)
+                save_widget(wid, retry=False)
 
 
 def save_history(event, retry=True):
@@ -210,8 +212,8 @@ def dfs_webhook():
         
         latest_by_id[wid] = event
         
-        # Persist state to database
-        save_state()
+        # Persist only this widget to database (not all widgets!)
+        save_widget(wid)
         
         # Save to history for charts
         save_history(event)
