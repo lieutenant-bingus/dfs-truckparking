@@ -689,6 +689,24 @@
             }
           }
 
+          // Deduplicate parking spots - keep only one per spot number (most recent)
+          const spotsByNumber = {};
+          for (const w of parkingSpots) {
+            const match = (w.name || "").match(/SPOT\s*(\d+)/i);
+            if (match) {
+              const spotNum = match[1];
+              const existing = spotsByNumber[spotNum];
+              // Keep the most recently updated one
+              if (!existing || (w.received_ts > existing.received_ts)) {
+                spotsByNumber[spotNum] = w;
+              }
+            }
+          }
+          // Convert back to array and sort by spot number
+          const dedupedSpots = Object.entries(spotsByNumber)
+            .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+            .map(entry => entry[1]);
+
           // Update No Parking Zone alert
           updateNoParkZoneAlert(noParkZoneWidget);
 
@@ -722,18 +740,18 @@
           }
 
           // Update overlay markers on camera feed
-          updateMarkers(parkingSpots);
+          updateMarkers(dedupedSpots);
 
           // Render parking spots
           const grid = document.getElementById("grid");
           grid.innerHTML = "";
 
-          if (parkingSpots.length === 0) {
+          if (dedupedSpots.length === 0) {
             grid.innerHTML = '<div class="no-data">No parking spot data yet.</div>';
             return;
           }
 
-          for (const w of parkingSpots) {
+          for (const w of dedupedSpots) {
             const value = w.object_count ?? w.value ?? 0;
             const occupied = Number(value) >= 1;
 
