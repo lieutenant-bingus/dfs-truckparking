@@ -6,6 +6,7 @@ import json
 app = Flask(__name__)
 
 EVENT_LOG_FILE = "dfs_events.log"
+STATE_FILE = "state.json"
 BASE_DIR = os.path.dirname(__file__)
 
 # In-memory cache of latest event per widget ID
@@ -13,6 +14,37 @@ latest_by_id = {}  # widget_id -> last event dict
 
 # Track when each spot became occupied (for "occupied since" feature)
 occupied_since = {}  # widget_id -> timestamp (ms) when spot became FULL
+
+
+def save_state():
+    """Save current state to file for persistence across restarts"""
+    state = {
+        "latest_by_id": latest_by_id,
+        "occupied_since": occupied_since
+    }
+    try:
+        with open(STATE_FILE, "w", encoding="utf-8") as f:
+            json.dump(state, f)
+    except OSError as e:
+        print(f"Warning: Could not save state: {e}")
+
+
+def load_state():
+    """Load state from file on startup"""
+    global latest_by_id, occupied_since
+    try:
+        if os.path.exists(STATE_FILE):
+            with open(STATE_FILE, "r", encoding="utf-8") as f:
+                state = json.load(f)
+                latest_by_id = state.get("latest_by_id", {})
+                occupied_since = state.get("occupied_since", {})
+                print(f"Loaded state: {len(latest_by_id)} widgets, {len(occupied_since)} occupied spots")
+    except (OSError, json.JSONDecodeError) as e:
+        print(f"Warning: Could not load state: {e}")
+
+
+# Load state on startup
+load_state()
 
 
 def is_occupied(event):
@@ -48,6 +80,9 @@ def dfs_webhook():
             occupied_since.pop(wid, None)
         
         latest_by_id[wid] = event
+        
+        # Persist state to survive server restarts
+        save_state()
 
     try:
         with open(EVENT_LOG_FILE, "a", encoding="utf-8") as f:
