@@ -32,12 +32,16 @@ def get_db_connection():
         return None
 
 
-def init_db():
-    """Initialize database tables"""
-    conn = get_db_connection()
+def init_db(conn=None):
+    """Initialize database tables. Can use existing connection or create new one."""
+    should_close = False
+    if not conn:
+        conn = get_db_connection()
+        should_close = True
+    
     if not conn:
         print("No database configured, using in-memory storage only")
-        return
+        return False
     
     try:
         cur = conn.cursor()
@@ -65,15 +69,18 @@ def init_db():
         
         conn.commit()
         cur.close()
-        conn.close()
+        if should_close:
+            conn.close()
         print("Database tables initialized")
+        return True
     except Exception as e:
         print(f"Database init error: {e}")
-        if conn:
+        if should_close and conn:
             conn.close()
+        return False
 
 
-def save_state():
+def save_state(retry=True):
     """Save current state to database for persistence across restarts"""
     conn = get_db_connection()
     if not conn:
@@ -98,9 +105,14 @@ def save_state():
         print(f"Error saving state: {e}")
         if conn:
             conn.close()
+        # If table doesn't exist, try to create it and retry once
+        if retry and "does not exist" in str(e):
+            print("Tables missing, attempting to create...")
+            if init_db():
+                save_state(retry=False)
 
 
-def save_history(event):
+def save_history(event, retry=True):
     """Save event to history table for charts"""
     conn = get_db_connection()
     if not conn:
@@ -123,6 +135,11 @@ def save_history(event):
         print(f"Error saving history: {e}")
         if conn:
             conn.close()
+        # If table doesn't exist, try to create it and retry once
+        if retry and "does not exist" in str(e):
+            print("Tables missing, attempting to create...")
+            if init_db():
+                save_history(event, retry=False)
 
 
 def load_state():
