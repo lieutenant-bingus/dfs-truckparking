@@ -302,6 +302,62 @@
         box-shadow: 0 2px 8px var(--shadow);
         transition: background 0.3s, box-shadow 0.3s;
       }
+      .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      .chart-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .chart-controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .time-range-btn {
+        padding: 6px 12px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+      }
+      .time-range-btn:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+      }
+      .time-range-btn.active {
+        background: #2196F3;
+        color: white;
+        border-color: #2196F3;
+      }
+      .expand-btn {
+        padding: 6px 12px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .expand-btn:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+      }
       .chart-wrapper {
         position: relative;
         height: 250px;
@@ -313,6 +369,87 @@
         text-align: center;
         font-style: italic;
       }
+      
+      /* Modal for expanded chart */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+      }
+      .modal-overlay.visible {
+        display: flex;
+      }
+      .modal-content {
+        background: var(--bg-secondary);
+        border-radius: 12px;
+        padding: 24px;
+        width: 90%;
+        max-width: 1200px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      }
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .modal-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .modal-close {
+        background: none;
+        border: none;
+        font-size: 28px;
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+      }
+      .modal-close:hover {
+        color: var(--text-primary);
+      }
+      .modal-chart-wrapper {
+        height: 400px;
+        margin-bottom: 20px;
+      }
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 16px;
+        margin-top: 20px;
+      }
+      .stat-card {
+        background: var(--bg-tertiary);
+        padding: 16px;
+        border-radius: 8px;
+        text-align: center;
+      }
+      .stat-label {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+      }
+      .stat-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-primary);
+      }
+      .stat-value.good { color: #4CAF50; }
+      .stat-value.warning { color: #ff9800; }
+      .stat-value.bad { color: #f44336; }
       .camera-wrapper {
         position: relative;
         display: inline-block;
@@ -467,12 +604,70 @@
       <section class="chart-section">
         <h2 class="section-title">Occupancy History</h2>
         <div class="chart-container">
+          <div class="chart-header">
+            <div class="chart-controls">
+              <button class="time-range-btn active" data-range="1h">1H</button>
+              <button class="time-range-btn" data-range="6h">6H</button>
+              <button class="time-range-btn" data-range="24h">24H</button>
+              <button class="time-range-btn" data-range="7d">7D</button>
+              <button class="time-range-btn" data-range="30d">30D</button>
+            </div>
+            <button class="expand-btn" onclick="openChartModal()">
+              <span>📊</span> Expand View
+            </button>
+          </div>
           <div class="chart-wrapper">
             <canvas id="occupancy-chart"></canvas>
           </div>
-          <div class="chart-note">* Data may be incomplete due to server spin-down on free tier</div>
+          <div class="chart-note">* Click "Expand View" for detailed statistics and larger chart</div>
         </div>
       </section>
+
+      <!-- Chart Modal -->
+      <div class="modal-overlay" id="chart-modal" onclick="closeChartModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+          <div class="modal-header">
+            <span class="modal-title">📊 Detailed Occupancy History</span>
+            <button class="modal-close" onclick="closeChartModal()">&times;</button>
+          </div>
+          <div class="chart-controls" style="margin-bottom: 16px;">
+            <button class="time-range-btn modal-range active" data-range="1h">1 Hour</button>
+            <button class="time-range-btn modal-range" data-range="6h">6 Hours</button>
+            <button class="time-range-btn modal-range" data-range="24h">24 Hours</button>
+            <button class="time-range-btn modal-range" data-range="7d">7 Days</button>
+            <button class="time-range-btn modal-range" data-range="30d">30 Days</button>
+          </div>
+          <div class="modal-chart-wrapper">
+            <canvas id="modal-chart"></canvas>
+          </div>
+          <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">Average Occupancy</div>
+              <div class="stat-value" id="stat-avg">--</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Peak Occupancy</div>
+              <div class="stat-value bad" id="stat-peak">--</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Minimum</div>
+              <div class="stat-value good" id="stat-min">--</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Data Points</div>
+              <div class="stat-value" id="stat-count">--</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Avg Utilization</div>
+              <div class="stat-value" id="stat-util">--%</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Time at Capacity</div>
+              <div class="stat-value warning" id="stat-full-time">--</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- Parking Spots -->
       <section class="spots-section">
@@ -517,6 +712,9 @@
 
       // ========== CHART ==========
       let occupancyChart = null;
+      let modalChart = null;
+      let currentRange = '1h';
+      let currentHistoryData = [];
       
       function getChartColors() {
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -528,19 +726,27 @@
         };
       }
       
-      async function loadHistory() {
+      function formatTimeLabel(timestamp, range) {
+        const d = new Date(timestamp);
+        if (range === '7d' || range === '30d') {
+          return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + 
+                 d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+      
+      async function loadHistory(range = currentRange) {
+        currentRange = range;
         try {
-          const res = await fetch('/api/history');
+          const res = await fetch(`/api/history?range=${range}&limit=1000`);
           const history = await res.json();
+          currentHistoryData = history;
           
           if (!history || history.length === 0) {
             return;
           }
           
-          const labels = history.map(h => {
-            const d = new Date(h.timestamp);
-            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          });
+          const labels = history.map(h => formatTimeLabel(h.timestamp, range));
           const data = history.map(h => h.occupied);
           
           const ctx = document.getElementById('occupancy-chart').getContext('2d');
@@ -562,16 +768,35 @@
                   backgroundColor: colors.fill,
                   fill: true,
                   tension: 0.3,
-                  pointRadius: 2,
+                  pointRadius: data.length > 100 ? 0 : 2,
                   pointHoverRadius: 5
                 }]
               },
               options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                  intersect: false,
+                  mode: 'index'
+                },
                 plugins: {
                   legend: {
                     display: false
+                  },
+                  tooltip: {
+                    callbacks: {
+                      title: function(context) {
+                        const idx = context[0].dataIndex;
+                        const ts = currentHistoryData[idx]?.timestamp;
+                        if (ts) {
+                          return new Date(ts).toLocaleString();
+                        }
+                        return context[0].label;
+                      },
+                      label: function(context) {
+                        return `Occupied: ${context.parsed.y} / 20 spots (${Math.round(context.parsed.y / 20 * 100)}%)`;
+                      }
+                    }
                   }
                 },
                 scales: {
@@ -597,7 +822,9 @@
                     },
                     ticks: {
                       color: colors.text,
-                      maxTicksLimit: 10
+                      maxTicksLimit: 10,
+                      maxRotation: 45,
+                      minRotation: 0
                     }
                   }
                 }
@@ -610,17 +837,180 @@
       }
       
       function updateChartTheme() {
-        if (!occupancyChart) return;
         const colors = getChartColors();
-        occupancyChart.data.datasets[0].borderColor = colors.line;
-        occupancyChart.data.datasets[0].backgroundColor = colors.fill;
-        occupancyChart.options.scales.y.grid.color = colors.grid;
-        occupancyChart.options.scales.y.ticks.color = colors.text;
-        occupancyChart.options.scales.y.title.color = colors.text;
-        occupancyChart.options.scales.x.grid.color = colors.grid;
-        occupancyChart.options.scales.x.ticks.color = colors.text;
-        occupancyChart.update('none');
+        
+        if (occupancyChart) {
+          occupancyChart.data.datasets[0].borderColor = colors.line;
+          occupancyChart.data.datasets[0].backgroundColor = colors.fill;
+          occupancyChart.options.scales.y.grid.color = colors.grid;
+          occupancyChart.options.scales.y.ticks.color = colors.text;
+          occupancyChart.options.scales.y.title.color = colors.text;
+          occupancyChart.options.scales.x.grid.color = colors.grid;
+          occupancyChart.options.scales.x.ticks.color = colors.text;
+          occupancyChart.update('none');
+        }
+        
+        if (modalChart) {
+          modalChart.data.datasets[0].borderColor = colors.line;
+          modalChart.data.datasets[0].backgroundColor = colors.fill;
+          modalChart.options.scales.y.grid.color = colors.grid;
+          modalChart.options.scales.y.ticks.color = colors.text;
+          modalChart.options.scales.y.title.color = colors.text;
+          modalChart.options.scales.x.grid.color = colors.grid;
+          modalChart.options.scales.x.ticks.color = colors.text;
+          modalChart.update('none');
+        }
       }
+      
+      // Time range button handlers
+      document.querySelectorAll('.time-range-btn:not(.modal-range)').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.time-range-btn:not(.modal-range)').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          loadHistory(btn.dataset.range);
+        });
+      });
+      
+      // Modal functions
+      function openChartModal() {
+        const modal = document.getElementById('chart-modal');
+        modal.classList.add('visible');
+        document.body.style.overflow = 'hidden';
+        loadModalChart(currentRange);
+      }
+      
+      function closeChartModal(event) {
+        if (event && event.target !== event.currentTarget) return;
+        const modal = document.getElementById('chart-modal');
+        modal.classList.remove('visible');
+        document.body.style.overflow = '';
+      }
+      
+      async function loadModalChart(range) {
+        try {
+          const res = await fetch(`/api/history?range=${range}&limit=2000`);
+          const history = await res.json();
+          
+          if (!history || history.length === 0) {
+            return;
+          }
+          
+          // Update stats
+          const data = history.map(h => h.occupied);
+          const avg = data.reduce((a, b) => a + b, 0) / data.length;
+          const peak = Math.max(...data);
+          const min = Math.min(...data);
+          const fullCount = data.filter(d => d >= 18).length; // 90% capacity
+          
+          document.getElementById('stat-avg').textContent = avg.toFixed(1);
+          document.getElementById('stat-peak').textContent = peak;
+          document.getElementById('stat-min').textContent = min;
+          document.getElementById('stat-count').textContent = data.length;
+          document.getElementById('stat-util').textContent = `${Math.round(avg / 20 * 100)}%`;
+          document.getElementById('stat-full-time').textContent = `${Math.round(fullCount / data.length * 100)}%`;
+          
+          // Build chart
+          const labels = history.map(h => formatTimeLabel(h.timestamp, range));
+          const ctx = document.getElementById('modal-chart').getContext('2d');
+          const colors = getChartColors();
+          
+          if (modalChart) {
+            modalChart.data.labels = labels;
+            modalChart.data.datasets[0].data = data;
+            modalChart.update('none');
+          } else {
+            modalChart = new Chart(ctx, {
+              type: 'line',
+              data: {
+                labels: labels,
+                datasets: [{
+                  label: 'Vehicles in Lot',
+                  data: data,
+                  borderColor: colors.line,
+                  backgroundColor: colors.fill,
+                  fill: true,
+                  tension: 0.3,
+                  pointRadius: data.length > 200 ? 0 : 2,
+                  pointHoverRadius: 5
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                  intersect: false,
+                  mode: 'index'
+                },
+                plugins: {
+                  legend: {
+                    display: false
+                  },
+                  tooltip: {
+                    callbacks: {
+                      title: function(context) {
+                        const idx = context[0].dataIndex;
+                        const ts = history[idx]?.timestamp;
+                        if (ts) {
+                          return new Date(ts).toLocaleString();
+                        }
+                        return context[0].label;
+                      },
+                      label: function(context) {
+                        return `Occupied: ${context.parsed.y} / 20 spots (${Math.round(context.parsed.y / 20 * 100)}%)`;
+                      }
+                    }
+                  }
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    max: 20,
+                    grid: {
+                      color: colors.grid
+                    },
+                    ticks: {
+                      color: colors.text,
+                      stepSize: 5
+                    },
+                    title: {
+                      display: true,
+                      text: 'Occupied Spots',
+                      color: colors.text
+                    }
+                  },
+                  x: {
+                    grid: {
+                      color: colors.grid
+                    },
+                    ticks: {
+                      color: colors.text,
+                      maxTicksLimit: 15,
+                      maxRotation: 45,
+                      minRotation: 0
+                    }
+                  }
+                }
+              }
+            });
+          }
+        } catch (err) {
+          console.error('Error loading modal chart', err);
+        }
+      }
+      
+      // Modal time range button handlers
+      document.querySelectorAll('.modal-range').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.modal-range').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          loadModalChart(btn.dataset.range);
+        });
+      });
+      
+      // Close modal with Escape key
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeChartModal();
+      });
       
       // Load chart on startup
       loadHistory();
@@ -645,9 +1035,13 @@
         
         const diffMins = Math.floor(diffMs / 60000);
         const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+        const hours = diffHours % 24;
         const mins = diffMins % 60;
         
-        if (diffHours > 0) {
+        if (diffDays > 0) {
+          return `${diffDays}d ${hours}h`;
+        } else if (diffHours > 0) {
           return `${diffHours}h ${mins}m`;
         } else if (diffMins > 0) {
           return `${diffMins}m`;
@@ -784,7 +1178,15 @@
             if (occupied && w.occupied_since) {
               const occupancy = document.createElement("div");
               occupancy.className = "widget-occupancy";
-              occupancy.textContent = `Occupied since ${formatTs(w.occupied_since)}`;
+              const duration = formatDuration(w.occupied_since);
+              occupancy.innerHTML = `Occupied since<br>${formatTs(w.occupied_since)}`;
+              if (duration) {
+                const durationSpan = document.createElement("div");
+                durationSpan.style.marginTop = "2px";
+                durationSpan.style.fontWeight = "600";
+                durationSpan.textContent = `(${duration})`;
+                occupancy.appendChild(durationSpan);
+              }
               div.appendChild(occupancy);
             }
 

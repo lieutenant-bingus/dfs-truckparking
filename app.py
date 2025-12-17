@@ -81,24 +81,51 @@ def init_db(conn=None):
 
 
 def save_widget(wid, retry=True):
-    """Save a single widget's state to database"""
+    """Save a single widget's state to database, preserving occupied_since if spot is still occupied"""
     conn = get_db_connection()
     if not conn:
         return
     
-    event = latest_by_id.get(wid)
+    wid_str = str(wid)
+    event = latest_by_id.get(wid_str)
     if not event:
         return
     
     try:
         cur = conn.cursor()
-        occ_since = occupied_since.get(wid)
-        cur.execute("""
-            INSERT INTO widget_state (widget_id, event_data, occupied_since)
-            VALUES (%s, %s, %s)
-            ON CONFLICT (widget_id) 
-            DO UPDATE SET event_data = %s, occupied_since = %s, updated_at = CURRENT_TIMESTAMP
-        """, (str(wid), json.dumps(event), occ_since, json.dumps(event), occ_since))
+        occ_since = occupied_since.get(wid_str)
+        
+        # Use COALESCE to preserve existing occupied_since if we don't have a new value
+        # but the spot is still occupied
+        spot_is_occupied = is_occupied(event)
+        
+        if spot_is_occupied and occ_since:
+            # Spot is occupied and we have a value - use it
+            cur.execute("""
+                INSERT INTO widget_state (widget_id, event_data, occupied_since)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (widget_id) 
+                DO UPDATE SET event_data = %s, 
+                              occupied_since = COALESCE(widget_state.occupied_since, %s),
+                              updated_at = CURRENT_TIMESTAMP
+            """, (wid_str, json.dumps(event), occ_since, json.dumps(event), occ_since))
+        elif spot_is_occupied:
+            # Spot is occupied but we don't have occ_since - preserve DB value
+            cur.execute("""
+                INSERT INTO widget_state (widget_id, event_data, occupied_since)
+                VALUES (%s, %s, NULL)
+                ON CONFLICT (widget_id) 
+                DO UPDATE SET event_data = %s, 
+                              updated_at = CURRENT_TIMESTAMP
+            """, (wid_str, json.dumps(event), json.dumps(event)))
+        else:
+            # Spot is not occupied - clear occupied_since
+            cur.execute("""
+                INSERT INTO widget_state (widget_id, event_data, occupied_since)
+                VALUES (%s, %s, NULL)
+                ON CONFLICT (widget_id) 
+                DO UPDATE SET event_data = %s, occupied_since = NULL, updated_at = CURRENT_TIMESTAMP
+            """, (wid_str, json.dumps(event), json.dumps(event)))
         
         conn.commit()
         cur.close()
@@ -144,6 +171,29 @@ def save_history(event, retry=True):
                 save_history(event, retry=False)
 
 
+def get_occupied_since_from_db(wid):
+    """Get occupied_since for a specific widget from the database"""
+    conn = get_db_connection()
+    if not conn:
+        return None
+    
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT occupied_since FROM widget_state WHERE widget_id = %s", (str(wid),))
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        if row and row[0]:
+            return row[0]
+        return None
+    except Exception as e:
+        print(f"Error getting occupied_since from DB: {e}")
+        if conn:
+            conn.close()
+        return None
+
+
 def load_state():
     """Load state from database on startup"""
     global latest_by_id, occupied_since
@@ -159,10 +209,11 @@ def load_state():
         rows = cur.fetchall()
         
         for row in rows:
-            wid = row["widget_id"]
+            wid = str(row["widget_id"])  # Ensure string keys
             latest_by_id[wid] = row["event_data"]
             if row["occupied_since"]:
                 occupied_since[wid] = row["occupied_since"]
+                print(f"Loaded occupied_since for {wid}: {row['occupied_since']}")
         
         cur.close()
         conn.close()
@@ -198,22 +249,35 @@ def dfs_webhook():
 
     wid = event.get("id")
     if wid is not None:
+        wid_str = str(wid)
+        
         # Check for OPEN -> FULL transition to track occupancy start time
-        prev_event = latest_by_id.get(wid)
+        prev_event = latest_by_id.get(wid_str)
         was_occupied = is_occupied(prev_event) if prev_event else False
         now_occupied = is_occupied(event)
         
-        if now_occupied and not was_occupied:
-            # Just became occupied - record the time
-            occupied_since[wid] = event["_received_ts"]
+        if now_occupied:
+            if not was_occupied and wid_str not in occupied_since:
+                # Just became occupied and no existing record - record the time
+                occupied_since[wid_str] = event["_received_ts"]
+            elif wid_str not in occupied_since:
+                # Spot is occupied but we have no record - could be server restart
+                # Try to get from DB first
+                db_occ_since = get_occupied_since_from_db(wid_str)
+                if db_occ_since:
+                    occupied_since[wid_str] = db_occ_since
+                else:
+                    # No DB record either - use current time as fallback
+                    # This is a limitation but better than nothing
+                    occupied_since[wid_str] = event["_received_ts"]
         elif not now_occupied and was_occupied:
             # Just became open - clear the occupied time
-            occupied_since.pop(wid, None)
+            occupied_since.pop(wid_str, None)
         
-        latest_by_id[wid] = event
+        latest_by_id[wid_str] = event
         
         # Persist only this widget to database (not all widgets!)
-        save_widget(wid)
+        save_widget(wid_str)
         
         # Save to history for charts
         save_history(event)
@@ -235,6 +299,7 @@ def dfs_webhook():
 def api_widgets():
     result = []
     for wid, ev in latest_by_id.items():
+        wid_str = str(wid)
         data = ev.get("data", {})
         result.append({
             "id": wid,
@@ -245,15 +310,35 @@ def api_widgets():
             "data_start_timestamp": ev.get("data_start_timestamp"),
             "data_end_timestamp": ev.get("data_end_timestamp"),
             "received_ts": ev.get("_received_ts"),
-            "occupied_since": occupied_since.get(wid),  # When spot became FULL
+            "occupied_since": occupied_since.get(wid_str),  # When spot became FULL
         })
     return jsonify(result)
 
 
 @app.route("/api/history", methods=["GET"])
 def api_history():
-    """Return historical occupancy data from the database"""
+    """Return historical occupancy data from the database
+    
+    Query params:
+    - range: '1h', '6h', '24h', '7d', '30d' (default: '1h')
+    - limit: max records to return (default: 500)
+    """
     history = []
+    
+    # Parse query parameters
+    time_range = request.args.get('range', '1h')
+    limit = min(int(request.args.get('limit', 500)), 5000)  # Cap at 5000
+    
+    # Calculate time threshold based on range
+    now_ms = int(time.time() * 1000)
+    range_ms = {
+        '1h': 60 * 60 * 1000,
+        '6h': 6 * 60 * 60 * 1000,
+        '24h': 24 * 60 * 60 * 1000,
+        '7d': 7 * 24 * 60 * 60 * 1000,
+        '30d': 30 * 24 * 60 * 60 * 1000,
+    }
+    threshold_ms = now_ms - range_ms.get(time_range, range_ms['1h'])
     
     # Try database first
     conn = get_db_connection()
@@ -263,15 +348,15 @@ def api_history():
             cur.execute("""
                 SELECT widget_name, object_count, timestamp 
                 FROM event_history 
-                ORDER BY timestamp DESC 
-                LIMIT 100
-            """)
+                WHERE timestamp >= %s
+                ORDER BY timestamp ASC 
+                LIMIT %s
+            """, (threshold_ms, limit))
             rows = cur.fetchall()
             cur.close()
             conn.close()
             
-            # Reverse to get chronological order
-            for row in reversed(rows):
+            for row in rows:
                 history.append({
                     "timestamp": row["timestamp"],
                     "occupied": row["object_count"],
@@ -293,18 +378,20 @@ def api_history():
                         event = json.loads(line.strip())
                         name = event.get("name", "")
                         if "mega-zone" in name.lower():
-                            data = event.get("data", {})
-                            history.append({
-                                "timestamp": event.get("_received_ts"),
-                                "occupied": data.get("object_count", 0),
-                                "name": name
-                            })
+                            ts = event.get("_received_ts", 0)
+                            if ts >= threshold_ms:
+                                data = event.get("data", {})
+                                history.append({
+                                    "timestamp": ts,
+                                    "occupied": data.get("object_count", 0),
+                                    "name": name
+                                })
                     except json.JSONDecodeError:
                         continue
     except OSError:
         pass
     
-    return jsonify(history[-100:])
+    return jsonify(history[-limit:])
 
 
 @app.route("/", methods=["GET"])
